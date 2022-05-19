@@ -19,8 +19,8 @@ The script is based on python 3.4 above and requires the following packages:
 
 ## Download code
 ```python
-git clone https://github.com/daifengwanglab/DeepDICE
-cd DeepDICE
+git clone https://github.com/daifengwanglab/DeepGAMI
+cd DeepGAMI
 ```
 
 ## Usage
