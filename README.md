@@ -1,1 +1,138 @@
-# DeepGAMI
+# # DeepGAMI - Deep auxiliary learning for multi-modal integration and estimation to improve genotype-phenotype prediction
+
+Genotype-phenotype association is found in many biological systems such as brains and brain diseases. However, predicting phenotypes from genotypes remains challenging, primarily due to complex underlying molecular and cellular mechanisms. Emerging multi-modal data enables studying such mechanisms at different scales. However, most of these approaches fail to incorporate biology into the machine learning models. Due to the black-box nature of many machine learning techniques, it is challenging to integrate these multi-modalities and interpret the results for biological insights, especially when some modality is missing. 
+
+To this end, we developed DeepGAMI, an interpretable deep learning model to improve genotype-phenotype prediction from multi-modal data. DeepGAMI uses prior biological knowledge to define the neural network architecture. Notably, it embeds an auxiliary-learning layer for cross-modal imputation while training the model from multi-modal data. Using this pre-trained layer, we can impute latent features of additional modalities and thus enable predicting phenotypes from a single modality only. Finally, the model uses integrated gradient approach to prioritize multi-modal features and links for phenotypes. We applied DeepGAMI to (1) population-level bulk and cell-type-specific genotype and gene expression data for Schizophrenia (SCZ) cohort, (2) genotype and gene expression data for Alzheimer's Disease (AD) cohort, and (3) recent single-cell multi-modal data comprising transcriptomics and electrophysiology for neuronal cells in the mouse visual cortex. We found that DeepGAMI outperforms existing state-of-the-art methods and provides a profound understanding of gene regulatory mechanisms at cellular resolution from genotype to phenotype. 
+
+![deepgami_architecture](https://user-images.githubusercontent.com/18314073/153448583-004a6414-00c1-4e5a-8296-96d65b312583.png)
+
+
+
+## Dependencies
+The script is based on python 3.4 above and requires the following packages:
+- pytorch: v1.4.0  (cpu) or v1.10.0(gpu)
+- scipy
+- numpy
+- scikit-learn
+- pandas
+- captum
+
+## Download code
+```python
+git clone https://github.com/daifengwanglab/DeepDICE
+cd DeepDICE
+```
+
+## Usage
+DeepDice has two versions of the code:
+1. DeepDiceMVTrain - This version takes in two modalities as input for disease prediction and can be trained using the following command:
+
+```
+python -u DeepDiceMVTrain.py --input_files='/path_to_modality1_csv_file, /path_to_modality2_csv_file' --intermediate_phenotype_files='/path_to_intermediate_pheno_file1, /path_to_intermediate_pheno_file2' --disease_label_file='path_to_class_labels_csv_file' --save= '/path_to_save_model' > '/path_to_output.txt'
+```
+
+The above code runs the default settings for training. Additional settings that can be included along with the above code are:
+* **--num_data_modal** = Specify the number of modalities (default=2)
+* **--input_files** = This parameter is used to specify comma-separated input file path names for modalities
+* **--intermediate_phenotype_files** = This parameter specifies file path to input transparent layer adjacency matrix
+* **--disease_label_file** = This parameter specifies file path for output labels (eg. disease phenotypes)
+* **--split_sample_ids** = 
+* **--cross-validate** = This is a flag which performs 5-fold CV when enabled ((default=False).
+* **--need_balance** = This specifies balanced training (default=False)
+* **--train_percent** = Choose how the tain and test validation split to occur (default=0.8)
+* **--latent_dim** = This parameter is used to specify the number of hidden nodes in the transparent layer if the model type is fully conencted network (default=100).
+* **--num_fc_layers** = Number of fully conencted network layers (default = 1).
+* **--num_fc_neurons** = Number of hidden units for fully connected layers. Comma separated values needs to be given (default = '500,50')
+* **--dropout_keep_prob** = This is used to handle overfitting (default = 0.5).
+* **--batch_size** = Batch size for training (default = 30).
+* **--epochs** = Number of epochs (default=100)
+* **--learn_rate** = Learning rate for the model (default = 0.001). 
+* **--out_reg** = L2 regularization parameter (default = 0.005).
+* **--corr_reg** = Regularization parameter for the cross-modal estimation loss (default = 0.5).
+* **--stagnant** = Specify the early stop criterion i.e. the number of iterations after which to stop (default=100)
+* **--normalize** = Feature normalization versus sample normalization (default = 'features').
+* **--type_of_norm** = Choose between standard and minmax normalization (default = 'standard').
+* **--direction** = ??
+* **--n_iter** = Specify the number of iterations (default=1)
+* **--oversampling** = (default=True)
+* **--save** = This argument specifies the path to save the model generated by the code
+
+## Demo for predicting Cortical layers in single-cell Mouse Visual Cortex
+This demo applies **DeepDice** to predict the cortical layers (L1,L2/L3,L4,L5,L6) for single-cell mutli-modal data from mouse visual cortex. The modalities provided as input include gene expression and electrophysiological features. Deepdice performs "standard" normalization by default, hence the input data can be raw files. Alternatively, you can choose to apply "minmax" normalization by setting the '--type_of_norm' parameter.
+
+### Training
+The files input to DeepDice are:
+
+
+
+To train the model, run the following command:
+
+```
+python -u DeepDiceTrainMC.py --input_files "./demo/expMat_filtered.csv,./demo/efeature_filtered.csv" --disease_label_file "./demo/label_visual.csv" --num_fc_layers 1 --num_fc_neurons '50' --latent_dim 100 --n_iter 100 --batch_size 30 --learn_rate 0.001 --out_reg 0.005 --corr_reg 1 --epochs 100 --save "." > "sc_MVC_result.txt"
+```
+The model generated by DeepDice is saved as "run_<*highest_acc_epoch_number*>\_bestmodel.pth". For the above command, the best model and result files are saved as "run_93_best_model.pth" and "sc_MVC_result.txt" in the same location as were the above command was executed. All the other arguments are set to default (refer to Usage section).
+
+### Results
+After training, you can use the best model generated by DeepDice to perform phenotype prediction and get prioritized multi-modal features and links for those phenotypes.
+
+#### Prediction
+To test the model generated DeepDice, we used another visual cortex dataset with 118 samples. This dataset contains gene expression for 23,998 genes and 118 samples. In the "DeepDiceMVTest.py" file, specify the input test filenames as follows:
+```
+# #Independent
+gex_file = 'demo/test/independent_test_118_gexMat.csv'
+gex_data = pd.read_csv(gex_file, header=0)
+gex_data = gex_data.set_index(gex_data.columns[0])
+```
+```
+label_file = 'demo/test/independent_test_118_label.csv'
+lbls = pd.read_csv(label_file, header=0)
+labels = lbls.layer.values
+```
+```
+model_file = 'run_93_best_model.pth'
+```
+Once set, run the following command:
+```
+python DeepDiceMVTest.py
+```
+This will generate an AUROC curve as follows:
+<!-- ![alt text](https://github.com/daifengwanglab/DeepDICE/blob/main/demo/test/vc_112.png) -->
+<img src="https://github.com/daifengwanglab/DeepDICE/blob/main/demo/test/vc_112.png" width="300" height="450">
+
+#### Feature and Link Prioritization
+To get feature and link prioritizations, DeepDice uses the fucntions: IntegratedGradients, LayerConductance and NeuronConductance from the captum package. In the "DeepDiceIG.py" file, specify the input files and the model filename (generated by DeepDice) as follows:
+
+```
+input_files = "demo/expMat_filtered.csv,demo/efeature_filtered.csv"
+mid_phen_files = "None"
+label_file = "demo/label_visual.csv"
+model_file = "run_93_best_model.pth"
+```
+Then run the command:
+```
+python DeepDiceIG.py
+```
+This generates following file "ephys_prioritized.csv" containing prioritized features and links.
+
+## License
+MIT License
+
+Copyright (c) 2020
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
