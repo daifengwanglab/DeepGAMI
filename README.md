@@ -4,8 +4,7 @@ Genotype-phenotype association is found in many biological systems such as brain
 
 To this end, we developed DeepGAMI, an interpretable deep learning model to improve genotype-phenotype prediction from multi-modal data. DeepGAMI uses prior biological knowledge to define the neural network architecture. Notably, it embeds an auxiliary-learning layer for cross-modal imputation while training the model from multi-modal data. Using this pre-trained layer, we can impute latent features of additional modalities and thus enable predicting phenotypes from a single modality only. Finally, the model uses integrated gradient approach to prioritize multi-modal features and links for phenotypes. We applied DeepGAMI to (1) population-level bulk and cell-type-specific genotype and gene expression data for Schizophrenia (SCZ) cohort, (2) genotype and gene expression data for Alzheimer's Disease (AD) cohort, and (3) recent single-cell multi-modal data comprising transcriptomics and electrophysiology for neuronal cells in the mouse visual cortex. We found that DeepGAMI outperforms existing state-of-the-art methods and provides a profound understanding of gene regulatory mechanisms at cellular resolution from genotype to phenotype. 
 
-![deepgami_architecture](https://user-images.githubusercontent.com/18314073/153448583-004a6414-00c1-4e5a-8296-96d65b312583.png)
-
+![figure1_new](https://user-images.githubusercontent.com/57010174/169338015-11f5173f-5c6a-4c8d-972e-b112b5591219.png)
 
 
 ## Dependencies
