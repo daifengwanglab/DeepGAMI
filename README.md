@@ -1,4 +1,4 @@
-# # DeepGAMI - Deep auxiliary learning for multi-modal integration and estimation to improve genotype-phenotype prediction
+# DeepGAMI - Deep auxiliary learning for multi-modal integration and estimation to improve genotype-phenotype prediction
 
 Genotype-phenotype association is found in many biological systems such as brains and brain diseases. However, predicting phenotypes from genotypes remains challenging, primarily due to complex underlying molecular and cellular mechanisms. Emerging multi-modal data enables studying such mechanisms at different scales. However, most of these approaches fail to incorporate biology into the machine learning models. Due to the black-box nature of many machine learning techniques, it is challenging to integrate these multi-modalities and interpret the results for biological insights, especially when some modality is missing. 
 
