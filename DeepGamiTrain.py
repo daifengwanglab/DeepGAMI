@@ -572,7 +572,7 @@ def main():
                         default="data/rosmap/cogdx/rosmap_geno.csv,data/rosmap/cogdx/rosmap_gex.csv",
                         help='Comma separated input data paths')
     parser.add_argument('--intermediate_phenotype_files', type=str,
-                        default="data/rosmap/cogdx/rosmap_eqtl_adj.npz,data/rosmap/cogdx/rosmap_grn_adj.npz",
+                        default="None,None",
                         help='Path to transparent layer adjacency matrix')
     parser.add_argument('--disease_label_file', type=str,
                         default="data/rosmap/cogdx/rosmap_cogdx_labels.csv",
