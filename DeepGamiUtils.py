@@ -76,7 +76,7 @@ def get_mm_data(input_files, mid_phenotype_files, label_file, file_format):
         inp.append(dm_inp.T)
         print("dm_inp_%d"%i, dm_inp.shape)
 
-        if mid_phenotype_files != 'None':
+        if adj_files[i] != 'None':
             adj_sp = sp.sparse.load_npz(adj_files[i])
             dm_adj = adj_sp.todense()
             #dm_adj[dm_adj == 0] = np.max(dm_adj)/10.0
