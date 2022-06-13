@@ -85,7 +85,7 @@ def get_mm_data(input_files, mid_phenotype_files, label_file, file_format):
 
     labels = lbls['label'].values
     print(Counter(labels))
-    if max(labels) > 1:
+    if len(set(labels)) > 2:
         labels = one_hot_encoding(labels)
     else:
         labels = labels.reshape(-1, 1)
