@@ -347,6 +347,7 @@ def run_cv_train(snp_data, gex_data, labels, args):
 
         with open(args.save + 'val_1m_cs_perf.csv', 'a') as f:
             f.write(val_cs_str + ',' + str(perf_1m_dict['max_val_cs_acc']) + '\n')
+        cntr += 1
 
     out_file = args.save + 'overall_perf.txt'
     header_str = "Model\tTrain BACC\tTrain AUC\tVal BACC\tVal AUC\tVal Cs->Cg BACC"
