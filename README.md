@@ -28,13 +28,18 @@ cd DeepGAMI
 The DeepGamiTrain file is the starting point which reads the input files, performs model training, and predicts the phenotype. It can be run using the following command:
 
 ```
-python -u DeepGamiTrain.py --input_files='/path_to_modality1_csv_file, /path_to_modality2_csv_file' --intermediate_phenotype_files='/path_to_intermediate_pheno_file1, /path_to_intermediate_pheno_file2' --disease_label_file='path_to_class_labels_csv_file' --save= '/path_to_save_model' > '/path_to_output.txt'
+python -u DeepGamiTrain.py --input_files='/path_to_modality1_csv_file,/path_to_modality2_csv_file' --disease_label_file='path_to_class_labels_csv_file' --save= '/path_to_save_model' > '/path_to_output.txt'
+```
+The above code uses fully connected network for connecting the input to the intermediate transparent layer. For guiding the model using biological insights, use the following command:
+
+```
+python -u DeepGamiTrain.py --input_files='/path_to_modality1_csv_file,/path_to_modality2_csv_file' --intermediate_phenotype_files='/path_to_biological_insights_adjacency_matrix1,/path_to_biological_insights_adjacency_matrix2' --disease_label_file='path_to_class_labels_csv_file' --model_type='drop_connect' --save= '/path_to_save_model' > '/path_to_output.txt'
 ```
 
-The above code runs the default settings for training. Additional settings that can be included along with the above code are:
+The above two command runs the default settings for training. Additional settings that can be included along with the above code are:
 * **--num_data_modal** = Specify the number of modalities (default=2. Currently supports only 2 modalities).
 * **--input_files** = This parameter is used to specify comma-separated input file path names for modalities.
-* **--intermediate_phenotype_files** = This parameter specifies file path to input transparent layer adjacency matrix. Default is None.
+* **--intermediate_phenotype_files** = This parameter specifies file path to input transparent layer adjacency matrix containing biological insights. Default is None.
 * **--disease_label_file** = This parameter specifies file path for output labels (eg. disease phenotypes).
 * **--learn_rate** = Learning rate for the model (default = 0.001). 
 * **--out_reg** = L2 regularization parameter (default = 0.005).
