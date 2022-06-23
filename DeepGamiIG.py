@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Updated on Mon Mar 28 2022
 @author: pramod
 """
 
@@ -15,7 +14,7 @@ from sklearn import preprocessing
 import sklearn.metrics as skm
 import matplotlib.pyplot as plt
 from scipy import stats
-import DeepDiceUtils as ut
+import DeepGamiUtils as ut
 
 device = 'cpu'
 
@@ -57,13 +56,13 @@ def get_mc_feat_importance(model, x1b, x2b, labels):
  
 """ prioritization analysis """
 
-input_files = "data/expMat_filtered.csv,data/efeature_filtered.csv"
-mid_phen_files = "None"
-label_file = "data/label_visual.csv"
-model_file = "model/aibs_ld100_nfc50_cv_mc/run_93_best_model.pth"
-inp, labels = ut.get_csv_data(input_files, mid_phen_files, label_file)
+input_files = "demo/expMat_filtered.csv,demo/efeature_filtered.csv"
+mid_phen_files = "None,None"
+label_file = "demo/label_visual.csv"
+model_file = "try/run_4_best_model.pth"
+inp, _, labels = ut.get_mm_data(input_files, mid_phen_files, label_file, 'csv')
 
-x1_np = np.log(inp[0]+1).to_numpy()[:, 0:500]
+x1_np = np.log(inp[0]+1).to_numpy()[:, 0:1000]
 
 inp[1] = inp[1].T
 x2_np = preprocessing.scale(inp[1].to_numpy(),axis=0)
@@ -81,22 +80,17 @@ print('Loading model...')
 model = torch.load(model_file, map_location=torch.device('cpu'))
 lbls = np.argmax(labels, 1)
 
-snp_imp, gene_imp = get_mc_feat_importance(model, x1b, x2b, lbls)
+gene_imp, ephys_imp = get_mc_feat_importance(model, x1b, x2b, lbls)
 
-gene_list, ephys_list = list(inp[0].columns.values[0:500]), list(inp[1].columns.values)
-for i in range(len(snp_imp)):
-    df1 = pd.DataFrame({'id':gene_list, 'imp_score': snp_imp[i]})
-    df1 = df1.sort_values(by=['imp_score'], ascending=False)
-    
-    imp_genes = list(df1.id.values[0:50])
-    with open('imp_genes_layer'+str(i)+'.txt', 'w') as f:
-        for item in imp_genes:
-            f.write("%s\n"%item)
-            
+gene_list, ephys_list = list(inp[0].columns.values[0:1000]), list(inp[1].columns.values)
+for i in range(len(gene_imp)):
     if i == 0:
-        df2 = pd.DataFrame({'id':ephys_list, 'L1': gene_imp[i]})
+        df1 = pd.DataFrame({'id':gene_list, 'L1': gene_imp[i]})
+        df2 = pd.DataFrame({'id':ephys_list, 'L1': ephys_imp[i]})        
     else:
-        df2['L'+str(i+1)] = gene_imp[i]
-        
+        df1['L'+str(i+1)] = gene_imp[i]
+        df2['L'+str(i+1)] = ephys_imp[i]
+
+print(df1.shape, df2.shape)
 df1.to_csv('genes_prioritized.csv', index=False)
 df2.to_csv('ephys_prioritized.csv', index=False)
