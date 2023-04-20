@@ -36,6 +36,11 @@ To train the DeepGAMI model, users are required to provide
 ![figure2](https://github.com/daifengwanglab/DeepGAMI/blob/main/deepGAMI_intermediate_bio_layer.png)
 </center>
 
+<p align="right" width="100%">
+    This text is also aligned to the right.<br>
+    <img width="33%" src="https://i.stack.imgur.com/RJj4x.png">
+</p>
+
 - Disease phenotype file (.csv file): This file should contain the labels for training the samples/cells in input modalities The labels column must be marked as "labels", and the sample/cell IDs as "individualID".
 
 ### Preprocess Data
