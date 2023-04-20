@@ -27,10 +27,12 @@ cd DeepGAMI
 ## Usage
 
 ### Input files
-To train the DeepGAMI model, users are should provide the following files as input:
-- Input modalities 1,2: These are the expression profiles for both modalities 1,2 respectively such that rows are samples/cells and columns are features(e.g. genes, snps, etc.). They should be in .csv format.
-- (optional) Intermediate biological layer files for modalities 1,2: Intermediate files containing prior biological knowledge for each modality to train DeepGAMI with biological drop connect hidden layer. They should be in .csv format. Each file should must contain column names "source","target" for source and target features for respective modality with any optional additional columns. Note that the feature set of input modality 1 must be similar to intermediate biological layer file 1, and, similarly for modality 2.
-- Disease phenotype file: This files contain the labels for training the samples/cells in input modalities and is a .csv file. The labels column must be marked as "labels", and the sample/cell IDs as "individualID".
+To train the DeepGAMI model, users are required to provide
+- Input data modalities (input_1.csv and input_2.csv): These files are the main input to the model. They must be in .csv format and should contain rows as samples/cells and columns as features, such as genes or SNPs. For example Input 1: Genotype (samples as rows and SNPs as columns. The value represents either dosage or genotype) and Input 2: Gene expression (samples as rows and genes as columns).
+
+- Intermediate biological prior files for input 1 and input 2 (.csv files): These files represent prior biological knowledge that DeepGAMI requires for training using the biological dropconnect hidden layer. These intermediate files must contain "source" and "target" columns.  Additional columns like weight and other information can be provided as well but are optional. eQTLS and GRNs are examples of biological prior files. It is important to note that the feature set of input modalities must match the ‘source column’ of these files. 
+
+- Disease phenotype file (.csv file): This file should contain the labels for training the samples/cells in input modalities The labels column must be marked as "labels", and the sample/cell IDs as "individualID".
 
 ### Preprocess Data
 This step formats the input modalities, any intermediate biological layer files, and the phenotype file to make sure that features and sample IDs across modalities and labels are aligned. 
