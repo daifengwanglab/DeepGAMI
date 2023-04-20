@@ -30,15 +30,13 @@ cd DeepGAMI
 To train the DeepGAMI model, users are required to provide
 - Input data modalities (input_1.csv and input_2.csv): These files are the main input to the model. They must be in .csv format and should contain rows as samples/cells and columns as features, such as genes or SNPs. For example Input 1: Genotype (samples as rows and SNPs as columns. The value represents either dosage or genotype) and Input 2: Gene expression (samples as rows and genes as columns).
 
-- Intermediate biological prior files for input 1 and input 2 (.csv files): These files represent prior biological knowledge that DeepGAMI requires for training using the biological dropconnect hidden layer. These intermediate files must contain "source" and "target" columns.  Additional columns like weight and other information can be provided as well but are optional. eQTLS and GRNs are examples of biological prior files. It is important to note that the feature set of input modalities must match the ‘source column’ of these files. Sometimes, these biological priors might be available. In these cases, you can specify None to convey the non-availability of these files. For example,the following screenshots show input modality 1 and itstitle="Intermediate Biological prior file for modality 1" corresponding intermediate biological prior file.
-
+- Intermediate biological prior files for input 1 and input 2 (.csv files): These files represent prior biological knowledge that DeepGAMI requires for training using the biological dropconnect hidden layer. These intermediate files must contain "source" and "target" columns.  Additional columns like weight and other information can be provided as well but are optional. eQTLS and GRNs are examples of biological prior files. It is important to note that the feature set of input modalities must match the ‘source column’ of these files. Sometimes, these biological priors might be available. In these cases, you can specify None to convey the non-availability of these files. For example,the following screenshots show formats an input modality and its corresponding intermediate biological prior file:
 
 <p align="center" width="100%">
     <img  src="https://github.com/daifengwanglab/DeepGAMI/blob/main/deepGAMI_inp1_format.png" >
     &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp;
     <img  src="https://github.com/daifengwanglab/DeepGAMI/blob/main/deepGAMI_intermediate_bio_layer.png" >
 </p>
-
 
 - Disease phenotype file (.csv file): This file should contain the labels for training the samples/cells in input modalities The labels column must be marked as "labels", and the sample/cell IDs as "individualID".
 
