@@ -35,6 +35,7 @@ To train the DeepGAMI model, users are required to provide
 
 <p align="center" width="100%">
     <img  src="https://github.com/daifengwanglab/DeepGAMI/blob/main/deepGAMI_intermediate_bio_layer.png">
+    <img  src="https://github.com/daifengwanglab/DeepGAMI/blob/main/deepGAMI_inp1_format.png">
 </p>
 
 
