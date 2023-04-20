@@ -26,7 +26,7 @@ cd DeepGAMI
 
 ## Usage
 
-### Input
+### Input files
 To train the DeepGAMI model, users are should provide the following files as input:
 - Input modalities 1,2: These are the expression profiles for both modalities 1,2 respectively such that rows are samples/cells and columns are features(e.g. genes, snps, etc.). They should be in .csv format.
 - (optional) Intermediate biological layer files for modalities 1,2: Intermediate files containing prior biological knowledge for each modality to train DeepGAMI with biological drop connect hidden layer. They should be in .csv format. Each file should must contain column names "source","target" for source and target features for respective modality with any optional additional columns. Note that the feature set of input modality 1 must be similar to intermediate biological layer file 1, and, similarly for modality 2.
@@ -34,6 +34,9 @@ To train the DeepGAMI model, users are should provide the following files as inp
 
 ### Preprocess Data
 This step formats the input modalities, any intermediate biological layer files, and the phenotype file. 
+```
+python -u data_preprocess.py --input_file_1='/path_to_modality1_csv_file' --input_file_2='/path_to_modality2_csv_file' --intermediate_biological_file_1= '/path_to_intermediate_biological_file_1' --intermediate_biological_file_2='/path_to_intermediate_biological_file_2' --disease_label_file='/path_to_class_labels_csv_file' 
+```
 
 ### Train DeepGAMI model
 The DeepGamiTrain file is the starting point which reads the input files, performs model training, and predicts the phenotype. It can be run using the following command:
