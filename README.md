@@ -69,7 +69,7 @@ The above two command runs the default settings for training. Additional setting
 * **--corr_reg** = Regularization parameter for the cross-modal estimation loss. (default = 0.5)
 * **--model_type** = This parameter is used to determine if the intermediate layer undergoes a fully connected network or biological dropconnection. (default='fully_connect')
 * **--latent_dim** = This parameter is used to specify the number of hidden nodes in the transparent layer if the model type is fully conencted network. (default=100)
-* **--num_fc_neurons** = Number of hidden units for fully connected layers. To add additionl hidden layers, provide number of hidden units for each layer separated by a comma for e.g. '200,100,50' has 3 layers with 200, 100 and 50 hidden units respectively. (default = '500,50')
+* **--num_fc_neurons** = Number of hidden units for fully connected layers. To add additional hidden layers, provide number of hidden units for each layer separated by a comma for e.g. '200,100,50' has 3 layers with 200, 100 and 50 hidden units respectively. (default = '500,50')
 * **--dropout_keep_prob** = This is used to handle overfitting. (default = 0.5)
 * **--need_normalization** = Flag for perfroming data normalziation.
 * **--norm_type** = Feature normalization versus sample normalization. (default = 'features')
