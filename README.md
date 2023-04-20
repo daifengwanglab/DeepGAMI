@@ -38,7 +38,7 @@ To train the DeepGAMI model, users are required to provide
 
 **Align center:**
 <p align="center" width="100%">
-    <img width="33%" src="https://i.stack.imgur.com/RJj4x.png">
+    <img width="33%" src="https://github.com/daifengwanglab/DeepGAMI/blob/main/deepGAMI_intermediate_bio_layer.png">
 </p>
 
 
