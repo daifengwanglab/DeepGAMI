@@ -33,10 +33,17 @@ To train the DeepGAMI model, users are should provide the following files as inp
 - Disease phenotype file: This files contain the labels for training the samples/cells in input modalities and is a .csv file. The labels column must be marked as "labels", and the sample/cell IDs as "individualID".
 
 ### Preprocess Data
-This step formats the input modalities, any intermediate biological layer files, and the phenotype file. 
+This step formats the input modalities, any intermediate biological layer files, and the phenotype file to make sure that features and sample IDs across modalities and labels are aligned. 
 ```
 python -u data_preprocess.py --input_file_1='/path_to_modality1_csv_file' --input_file_2='/path_to_modality2_csv_file' --intermediate_biological_file_1= '/path_to_intermediate_biological_file_1' --intermediate_biological_file_2='/path_to_intermediate_biological_file_2' --disease_label_file='/path_to_class_labels_csv_file' 
 ```
+The above command generates the following output files to train the DeepGAMI model:
+- preprocessed_modality1.csv, preprocessed_modality2.csv: files contain modalities with features matched with their corresponding intermediate biological layer features 
+- preprocessed_modality1_adj.npz, preprocessed_modality2_adj.npz: files containing adjacency matrices with features matched with their corresponding modalities
+- preprocessed_labels.csv: file contains phenotypes/labels aligned according to sample IDs in modalities
+- preprocessed_tfs.list: file contains features for modality 1
+- preprocessed_snps.list: file contains features for modality 2
+- preprocessed_tgs.list: file contains intermediate features for modality 1
 
 ### Train DeepGAMI model
 The DeepGamiTrain file is the starting point which reads the input files, performs model training, and predicts the phenotype. It can be run using the following command:
