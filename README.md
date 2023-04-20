@@ -32,7 +32,9 @@ To train the DeepGAMI model, users are required to provide
 
 - Intermediate biological prior files for input 1 and input 2 (.csv files): These files represent prior biological knowledge that DeepGAMI requires for training using the biological dropconnect hidden layer. These intermediate files must contain "source" and "target" columns.  Additional columns like weight and other information can be provided as well but are optional. eQTLS and GRNs are examples of biological prior files. It is important to note that the feature set of input modalities must match the ‘source column’ of these files. Sometimes, these biological priors might be available. In these cases, you can specify None to convey the non-availability of these files. For example,
 
+<center>
 ![figure2](https://github.com/daifengwanglab/DeepGAMI/blob/main/deepGAMI_intermediate_bio_layer.png)
+</center>
 
 - Disease phenotype file (.csv file): This file should contain the labels for training the samples/cells in input modalities The labels column must be marked as "labels", and the sample/cell IDs as "individualID".
 
