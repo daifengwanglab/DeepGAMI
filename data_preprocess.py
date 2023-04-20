@@ -187,10 +187,10 @@ def main():
                         help='Path to the input modality 1 data file')
     parser.add_argument('--input_file_2', type=str,
                         help='Path to the input modality 2 data file')
-    parser.add_argument('--intermediate_phenotype_file_1', type=str,
+    parser.add_argument('--intermediate_biological_file_1', type=str,
                         default="None",
                         help='Path to transparent layer adjacency matrix for modality 1')
-    parser.add_argument('--intermediate_phenotype_file_2', type=str,
+    parser.add_argument('--intermediate_biological_file_2', type=str,
                         default="None",
                         help='Path to transparent layer adjacency matrix for modality 2')
     parser.add_argument('--disease_label_file', type=str,
