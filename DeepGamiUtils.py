@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed May 18 10:38:49 2022
 @author: pramod
 """
 
@@ -56,7 +55,7 @@ def one_hot_encoding(labels):
     onehot = np.eye(unique.shape[0])[inverse]
     return onehot
 
-def get_mm_data(input_files, mid_phenotype_files, label_file, file_format):
+def get_mm_data(input_files, mid_phenotype_files, label_file, file_format='csv'):
     """ Read and fetch multi-modal data from files"""
 
     inp_files = list(input_files.split(','))
@@ -76,10 +75,9 @@ def get_mm_data(input_files, mid_phenotype_files, label_file, file_format):
         inp.append(dm_inp.T)
         print("dm_inp_%d"%i, dm_inp.shape)
 
-        if adj_files[i] != 'None':
+        if mid_phenotype_files != 'None':
             adj_sp = sp.sparse.load_npz(adj_files[i])
             dm_adj = adj_sp.todense()
-            #dm_adj[dm_adj == 0] = np.max(dm_adj)/10.0
             adj.append(dm_adj)
             print("dm_adj_%d"%i, dm_adj.shape)
 
