@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu May 12 15:17:02 2022
-@author: pramod
+@author: Pramod Bharadwaj Chandrashekar
 """
 
 import argparse
+import pandas as pd
 import os
 import time
 import random
@@ -15,12 +15,12 @@ from torch import nn
 from torch.utils.data import TensorDataset, DataLoader
 import numpy as np
 import sklearn.metrics as skm
-from sklearn.model_selection import  StratifiedKFold, train_test_split, KFold
+from sklearn.model_selection import train_test_split, KFold
 import DeepGamiUtils as ut
 from DeepGamiModel import DeepGami
+from scipy.stats import bernoulli
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 def preprocess(inp1, inp2, oup):
     """ Function to direct the input and ouput to CPU vs GPU"""
@@ -36,6 +36,24 @@ class WrappedDataLoader:
         batches = iter(self.dl)
         for b in batches:
             yield self.func(*b)
+
+def bio_dropout(data, drop_type='random'):
+    """ Function to get bernaoulli dropout with biological prior"""
+    new_data = data.copy()
+    
+    pos_len = len(np.where(data == 1)[0])
+    neg_len = len(np.where(data == 0)[0])
+    
+    if drop_type == 'random':
+        pos_rv = bernoulli(0.5)
+        neg_rv = bernoulli(0.5)
+    else:
+        pos_rv = bernoulli(0.8)
+        neg_rv = bernoulli(0.2)
+
+    new_data[data == 1] = pos_rv.rvs(pos_len)
+    new_data[data == 0] = neg_rv.rvs(neg_len)
+    return new_data
 
 def get_binary_performance(y_true, y_score):
     """Function to return the acc, bacc, and auc"""
@@ -138,10 +156,13 @@ def fit(epochs, model, loss_fn, opt, train_dl, val_dl, l1_reg, corr_reg, task, s
         model.eval()
         # Both modality as input
         val_pred, val_truth = predict(model, val_dl, estimate, task)
+        te_pred_2m_df = pd.DataFrame(val_pred)
+        te_truth_df = pd.DataFrame(val_truth)
 
         # Input is modality 1
         estimate = 'cg'
         val_cg_pred, _ = predict(model, val_dl, estimate, task)
+        te_pred_cg_df = pd.DataFrame(val_cg_pred)
 
         # Input is modality 2
         estimate = 'cs'
@@ -196,6 +217,13 @@ def fit(epochs, model, loss_fn, opt, train_dl, val_dl, l1_reg, corr_reg, task, s
         print(cfm)
 
         if epoch == 0:
+            te_pred_2m_df.to_csv(save_dir+'/run'+str(cv_cntr)+'_2m_test_prob.csv',
+                                 index=False, header=False)
+            te_pred_cg_df.to_csv(save_dir+'/run'+str(cv_cntr)+'_cg_test_prob.csv',
+                                 index=False, header=False)
+            te_truth_df.to_csv(save_dir+'/run'+str(cv_cntr)+'_test_truth.csv',
+                                 index=False, header=False)
+
             max_tr_acc, max_val_acc = tr_bacc, val_bacc
             max_val_cg_acc, max_val_cs_acc = val_cg_bacc, val_cs_bacc
             max_tr_cl_acc, max_val_cl_acc  = tr_cl_acc, val_cl_acc
@@ -209,8 +237,16 @@ def fit(epochs, model, loss_fn, opt, train_dl, val_dl, l1_reg, corr_reg, task, s
 
         else:
             #if (tr_bacc >= max_tr_acc) and (val_bacc > max_val_acc):
-            if (val_cg_bacc > max_val_cg_acc) and (val_bacc > max_val_acc):
+            #if (val_cg_bacc > max_val_cg_acc) and (val_bacc > max_val_acc):
             #if (val_cg_bacc > max_val_cg_acc):
+            if (val_bacc > max_val_acc):
+                te_pred_2m_df.to_csv(save_dir+'/run'+str(cv_cntr)+'_2m_test_prob.csv',
+                                     index=False, header=False)
+                te_pred_cg_df.to_csv(save_dir+'/run'+str(cv_cntr)+'_cg_test_prob.csv',
+                                     index=False, header=False)
+                te_truth_df.to_csv(save_dir+'/run'+str(cv_cntr)+'_test_truth.csv',
+                                   index=False, header=False)
+
                 max_tr_acc, max_val_acc = tr_bacc, val_bacc
                 max_val_cg_acc, max_val_cs_acc = val_cg_bacc, val_cs_bacc
                 max_tr_cl_acc, max_val_cl_acc  = tr_cl_acc, val_cl_acc
@@ -254,11 +290,7 @@ def run_cv_train(snp_data, gex_data, labels, args):
     # Split dalta into 5 fold CV splits
     cv_k = 5
     rnd_seed = random.randint(1, 9999999)
-
-    if args.task == 'binary':
-        kfl = StratifiedKFold(n_splits=cv_k, shuffle=True, random_state=rnd_seed)
-    else:
-        kfl = KFold(n_splits=cv_k, shuffle=True, random_state=rnd_seed)
+    kfl = KFold(n_splits=cv_k, shuffle=True, random_state=rnd_seed)
 
     cntr = 1
     tr_acc_sc, tr_auc_sc = [], []
@@ -268,8 +300,13 @@ def run_cv_train(snp_data, gex_data, labels, args):
 
     print("Random Seed = %d"%(rnd_seed))
     st_time = time.perf_counter()
-
-    for tridx, teidx in kfl.split(labels if args.task=='binary' else np.argmax(labels, 1)):
+    
+    print(kfl, args.task)
+    
+    lbls = labels if args.task=='binary' else np.argmax(labels, 1)
+    print(lbls.shape)
+    
+    for tridx, teidx in kfl.split(lbls):
         print("********** Run %d **********"%(cntr))
 
         snps_tr, snps_val = snp_data.values[tridx, :], snp_data.values[teidx, :]
@@ -347,10 +384,11 @@ def run_cv_train(snp_data, gex_data, labels, args):
 
         with open(args.save + 'val_1m_cs_perf.csv', 'a') as f:
             f.write(val_cs_str + ',' + str(perf_1m_dict['max_val_cs_acc']) + '\n')
+        
         cntr += 1
 
-    out_file = args.save + 'overall_perf.txt'
-    header_str = "Model\tTrain BACC\tTrain AUC\tVal BACC\tVal AUC\tVal Cs->Cg BACC"
+    out_file = 'overall_perf.txt'
+    header_str = "Model\tRandom Seed\tTrain BACC\tTrain AUC\tVal BACC\tVal AUC\tVal Cs->Cg BACC"
     header_str += "\tVal Cs->Cg AUC\tVal Cg->Cs BACC\tVal Cg->Cs AUC\n"
 
     if not os.path.exists(out_file):
@@ -358,14 +396,15 @@ def run_cv_train(snp_data, gex_data, labels, args):
             write_fl.write(header_str)
             write_fl.close()
 
-    wr_str = "%s\t%.5f +/- %.5f\t%.5f +/- %.5f" %(args.save, np.mean(tr_acc_sc), np.std(tr_acc_sc),
-                                                  np.mean(tr_auc_sc), np.std(tr_auc_sc))
-    wr_str += "\t%.5f +/- %.5f\t%.5f +/- %.5f" %(np.mean(val_acc_sc), np.std(val_acc_sc),
-                                                 np.mean(val_auc_sc), np.std(val_auc_sc))
-    wr_str += "\t%.5f +/- %.5f\t%.5f +/- %.5f" %(np.mean(val_cg_acc_sc), np.std(val_cg_acc_sc),
-                                                 np.mean(val_cg_auc_sc), np.std(val_cg_auc_sc))
-    wr_str += "\t%.5f +/- %.5f\t%.5f +/- %.5f\n" %(np.mean(val_cs_acc_sc), np.std(val_cs_acc_sc),
-                                                   np.mean(val_cs_auc_sc), np.std(val_cs_auc_sc))
+    wr_str = "%s\t%d\t%.5f\t%.5f\t%.5f\t%.5f" %(args.save, rnd_seed,
+                                                np.mean(tr_acc_sc), np.std(tr_acc_sc),
+                                                np.mean(tr_auc_sc), np.std(tr_auc_sc))
+    wr_str += "\t%.5f\t%.5f\t%.5f\t%.5f" %(np.mean(val_acc_sc), np.std(val_acc_sc),
+                                           np.mean(val_auc_sc), np.std(val_auc_sc))
+    wr_str += "\t%.5f\t%.5f\t%.5f\t%.5f" %(np.mean(val_cg_acc_sc), np.std(val_cg_acc_sc),
+                                           np.mean(val_cg_auc_sc), np.std(val_cg_auc_sc))
+    wr_str += "\t%.5f\t%.5f\t%.5f\t%.5f\n" %(np.mean(val_cs_acc_sc), np.std(val_cs_acc_sc),
+                                             np.mean(val_cs_auc_sc), np.std(val_cs_auc_sc))
 
     with open(out_file, 'a') as write_fl:
         write_fl.write(wr_str)
@@ -374,11 +413,19 @@ def run_cv_train(snp_data, gex_data, labels, args):
     # Keep the best model and remove the other folders
     fls = os.listdir(args.save)
     model_fls = [f for f in fls if f.startswith('run')]
-    print(model_fls)
-    keep_model = args.save + '/run_' + str(val_acc_sc.index(max(val_acc_sc))+1) + '_best_model.pth'
+
+    keep_fls = []
+    keep_model = args.save+'/run_'+str(val_acc_sc.index(max(val_acc_sc))+1)+'_best_model.pth'
+    keep_fls.append(keep_model)
+    keep_fls.append(args.save+'/run'+str(val_acc_sc.index(max(val_acc_sc))+1) +'_cg_test_prob.csv')
+    keep_fls.append(args.save+'/run'+str(val_acc_sc.index(max(val_acc_sc))+1) +'_2m_test_prob.csv')
+    keep_fls.append(args.save+'/run'+str(val_acc_sc.index(max(val_acc_sc))+1) +'_test_truth.csv')
+    print(keep_fls)
+    
     for fls in model_fls:
-        if (args.save + '/'+ fls) != keep_model:
+        if not (args.save + '/'+ fls) in keep_fls:
             os.remove((args.save + '/' + fls))
+
 
     end_time = time.perf_counter()
     print("Five fold CV complete in %.3f minutes"%((end_time - st_time)/60.00))
@@ -402,18 +449,24 @@ def run_split_train(snp_data, gex_data, labels, args):
 
     st_time = time.perf_counter()
     for i in range(0, args.n_iter):
+        # Data normalization
         if args.need_normalization:
             norm_method = list(args.norm_method.split(','))
             x1_np = ut.normalize_data(snp_data.copy(), args.norm_type, norm_method[0])
-            x2_np = ut.normalize_data(gex_data.copy(), args.norm_type, norm_method[1])
+            x2_np = ut.normalize_data(gex_data.copy(), args.norm_type, norm_method[1]).to_numpy()
         else:
             x1_np = snp_data.copy().to_numpy()
             x2_np = gex_data.copy().to_numpy()
 
+        # Split to train and test
         X1_tr, X1_te, X2_tr, X2_te, y_tr, y_te = train_test_split(x1_np, x2_np, labels,
-                                                                  test_size=0.20, random_state=i,
+                                                                  test_size=0.20,
+                                                                  random_state=random.randint(1, 999999),#i,
                                                                   stratify=np.argmax(labels, 1))
+        
+        print(type(X1_tr), type(X2_tr))
 
+        # Oversampling
         if args.oversampling:
             data_tr, y_tr = ut.perform_oversampling(np.concatenate((X1_tr, X2_tr), axis=1),
                                                      np.argmax(y_tr, 1), random_state = i)
@@ -496,14 +549,14 @@ def run_split_train(snp_data, gex_data, labels, args):
             write_fl.write(header_str)
             write_fl.close()
 
-    wr_str = "%s\t%.5f +/- %.5f\t%.5f +/- %.5f" %(args.save, np.mean(tr_acc_sc), np.std(tr_acc_sc),
-                                                  np.mean(tr_auc_sc), np.std(tr_auc_sc))
-    wr_str += "\t%.5f +/- %.5f\t%.5f +/- %.5f" %(np.mean(val_acc_sc), np.std(val_acc_sc),
-                                                 np.mean(val_auc_sc), np.std(val_auc_sc))
-    wr_str += "\t%.5f +/- %.5f\t%.5f +/- %.5f" %(np.mean(val_cg_acc_sc), np.std(val_cg_acc_sc),
-                                                 np.mean(val_cg_auc_sc), np.std(val_cg_auc_sc))
-    wr_str += "\t%.5f +/- %.5f\t%.5f +/- %.5f\n" %(np.mean(val_cs_acc_sc), np.std(val_cs_acc_sc),
-                                                   np.mean(val_cs_auc_sc), np.std(val_cs_auc_sc))
+    wr_str = "%s\t%.5f\t%.5f\t%.5f\t%.5f" %(args.save, np.mean(tr_acc_sc), np.std(tr_acc_sc),
+                                            np.mean(tr_auc_sc), np.std(tr_auc_sc))
+    wr_str += "\t%.5f\t%.5f\t%.5f\t%.5f" %(np.mean(val_acc_sc), np.std(val_acc_sc),
+                                           np.mean(val_auc_sc), np.std(val_auc_sc))
+    wr_str += "\t%.5f\t%.5f\t%.5f\t%.5f" %(np.mean(val_cg_acc_sc), np.std(val_cg_acc_sc),
+                                           np.mean(val_cg_auc_sc), np.std(val_cg_auc_sc))
+    wr_str += "\t%.5f\t%.5f\t%.5f\t%.5f\n" %(np.mean(val_cs_acc_sc), np.std(val_cs_acc_sc),
+                                             np.mean(val_cs_auc_sc), np.std(val_cs_auc_sc))
 
     with open(out_file, 'a') as write_fl:
         write_fl.write(wr_str)
@@ -511,11 +564,16 @@ def run_split_train(snp_data, gex_data, labels, args):
 
     fls = os.listdir(args.save)
     model_fls = [f for f in fls if f.startswith('run')]
-    print(model_fls)
-    print(val_acc_sc)
-    keep_model = args.save + '/run_' + str(val_acc_sc.index(max(val_acc_sc))+1) + '_best_model.pth'
+
+    keep_fls = []
+    keep_model = args.save+'/run_'+str(val_acc_sc.index(max(val_acc_sc))+1)+'_best_model.pth'
+    keep_fls.append(keep_model)
+    keep_fls.append(args.save+'/run'+str(val_acc_sc.index(max(val_acc_sc))+1) +'_cg_test_prob.csv')
+    keep_fls.append(args.save+'/run'+str(val_acc_sc.index(max(val_acc_sc))+1) +'_2m_test_prob.csv')
+    keep_fls.append(args.save+'/run'+str(val_acc_sc.index(max(val_acc_sc))+1) +'_test_truth.csv')
+    
     for fls in model_fls:
-        if (args.save + '/'+ fls) != keep_model:
+        if not (args.save + '/'+ fls) in keep_fls:
             os.remove((args.save + '/' + fls))
 
     end_time = time.perf_counter()
@@ -531,6 +589,7 @@ def train_deepgami(args):
     #-- Load and preprocess data -- #
     # Fetch required inputs
     st_time = time.perf_counter()
+        
     inp, adj, labels = ut.get_mm_data(args.input_files, args.intermediate_phenotype_files,
                                       args.disease_label_file, 'csv')
 
@@ -543,14 +602,23 @@ def train_deepgami(args):
 
     args.n_out = labels.shape[1]
 
-    if args.model_type == 'drop_connect':
-        args.n_feat1, args.latent_dim = adj[0].shape
-        args.n_feat2 = adj[1].shape[0]
-        args.adj1 = torch.from_numpy(adj[0]).float().to(device)
-        args.adj2 = torch.from_numpy(adj[1]).float().to(device)
-    else:
+    if args.model_type == 'fully_connect':
         args.n_feat1, args.n_feat2 = inp[0].shape[1], inp[1].shape[1]
-        args.adj1, args.adj2 = None, None
+        args.adj1, args.adj2 = None, None       
+    else:
+        args.n_feat1, args.latent_dim = adj[0].shape
+        args.n_feat2 = adj[1].shape[0]       
+        adj1, adj2 = adj[0], adj[1]
+
+        if args.model_type == 'random_dropconnect':
+            adj1 = bio_dropout(adj1, 'random')
+            adj2 = bio_dropout(adj2, 'random')
+        elif args.model_type == 'bernoulli_dropconenct':
+            adj1 = bio_dropout(adj1, 'bernoulli')
+            adj2 = bio_dropout(adj2, 'bernoulli')
+
+    args.adj1 = torch.from_numpy(adj1).float().to(device)
+    args.adj2 = torch.from_numpy(adj2).float().to(device)
 
     end_time = time.perf_counter()
     print("Data fetch & split completed in %.3f mins\n"%((end_time - st_time)/60.00))
@@ -570,28 +638,28 @@ def main():
     parser.add_argument('--num_data_modal', type=int, default=2,
                         help='Path to the input data file')
     parser.add_argument('--input_files', type=str,
-                        default="data/rosmap/cogdx/rosmap_geno.csv,data/rosmap/cogdx/rosmap_gex.csv",
+                        default="data/processed/cmc_features/cmc_tr_geno.csv,data/processed/cmc_features/cmc_tr_gex.csv",
                         help='Comma separated input data paths')
     parser.add_argument('--intermediate_phenotype_files', type=str,
-                        default="None,None",
+                        default="data/processed/cmc_features/cmc_tr_eqtl_adj.npz,data/processed/cmc_features/cmc_tr_grn_adj.npz",
                         help='Path to transparent layer adjacency matrix')
     parser.add_argument('--disease_label_file', type=str,
-                        default="data/rosmap/cogdx/rosmap_cogdx_labels.csv",
+                        default="data/processed/cmc_features/cmc_tr_labels.csv",
                         help='Path to Output labels file - Disease phenotypes')
 
     # Hyper parameters
     parser.add_argument('--learn_rate', type=float, default=0.001, help='learning rate')
     parser.add_argument('--out_reg', type=float, default=0.005, help='l2_reg_lambda')
-    parser.add_argument('--corr_reg', type=float, default=0.5, help='l2_corr_lambda')
+    parser.add_argument('--corr_reg', type=float, default=1, help='l2_corr_lambda')
 
     # First transparent layer
-    parser.add_argument('--model_type', type=str, default='fully_connect',
-                        help='Drop Connect vs FCN vs both for the first transparent layer')
-    parser.add_argument('--latent_dim', type=int, default=500,
+    parser.add_argument('--model_type', type=str, default='dropconnect',
+                        help='fully_connect vs drop_connect vs bernoulli_dropconenct vs random_dropconnect')
+    parser.add_argument('--latent_dim', type=int, default=1000,
                         help='Number of dimensions for the latent space to be reduced.')
 
     # FCN
-    parser.add_argument('--num_fc_neurons', type=str, default='350,200',
+    parser.add_argument('--num_fc_neurons', type=str, default='1500',
                         help='Number of kernels for fully connected layers, comma delimited.')
     parser.add_argument('--dropout_keep_prob', type=float, default=0.5,
                         help='Droupout % for handling overfitting. 1 to keep all & 0 to keep none')
@@ -600,7 +668,7 @@ def main():
     # Data normalization
     parser.add_argument('--need_normalization', type=bool, default=True,
                         help='Flag to perfrom data normalization')
-    parser.add_argument('--norm_method', type=str, default='standard,standard',
+    parser.add_argument('--norm_method', type=str, default='standard,log',
                         help='Standard vs log vs min-max for each input dataset. comma-separated')
     parser.add_argument('--norm_type', type=str, default='features',
                         help='Feature normalization vs sample normalization')
@@ -614,20 +682,16 @@ def main():
     parser.add_argument('--batch_size', type=int, default=30, help='Batch size for training')
     parser.add_argument('--epochs', type=int, default=100, help='Number of epochs')
     parser.add_argument('--stagnant', type=int, default=100, help='Early stop criteria')
-    parser.add_argument('--n_iter', type=int, default=3, help='n_iter')
+    parser.add_argument('--n_iter', type=int, default=100, help='n_iter')
     parser.add_argument('--oversampling', type=bool, default=False,
                         help='Flag to perfrom oversampling based on the unbalanced data')
-    parser.add_argument('--cross_validate', type=bool, default=True,
+    parser.add_argument('--cross_validate', type=bool, default=False,
                         help='Choose normal validation vs cross-validation')
 
     # Model save paths
-    parser.add_argument('--save', type=str, default="model/ROSMAP_cogdx_fc_try_cv/",
-                        help="path to save model")
-
-    # Remove these parameters later. This is for our convenience
-    parser.add_argument('--split_sample_ids', type=str, help="training and testing splits",
-                        default="None")
-
+    parser.add_argument('--save', type=str, help="path to save model",
+                        default="deepgami_models/pec1_bulk_fc_nfc1500_cv/")
+#                        default="new_model/cmc_olig_nfc100/")
 
     args = parser.parse_args()
     print(args)
