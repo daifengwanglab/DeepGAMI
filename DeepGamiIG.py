@@ -75,7 +75,7 @@ def get_feat_importance(model, x1b, x2b, x1_names, x2_names, labels):
 
 
 def get_layer_importance(model, x1b, x2b, target_names, labels):
-    """ Intemediate layer importance """
+    """ Function to get intemediate layer importance scores """
     cond = LayerConductance(model, model.drop_conn)
     inp_tg = cond.attribute((x1b, x2b), additional_forward_args='None')
 
@@ -116,7 +116,7 @@ def get_link_importance(model, x1b, x2b, labels, x1_names, x2_names, target_name
     return x1_all_neur_imp, x2_all_neur_imp
 
 
-""" prioritization analysis """
+""" Prioritization Analysis """
 # Read the input data files
 input_files = "demo/expMat_filtered.csv,demo/efeature_filtered.csv" # Point to the input files
 mid_phen_files = "None,None" # Point to the intermediate files
@@ -154,7 +154,7 @@ feat2_imp.to_csv('ephys_prioritized.csv', index=False)
 
 # Get prioritized Intermeduate features - IntegratedGradient
 if mid_phen_files.split(',')[0] != 'None':
-    tg_file = 'data/processed/cmc_features/cmc_te_tgs.list' # Edit: Point to the target names file
+    tg_file = 'data/processed/cmc_features/cmc_te_tgs.list' # Point to the target names file
     target_names = pd.read_csv(tg_file, header=None)
     target_names = list(target_names.iloc[:, 0])
 
