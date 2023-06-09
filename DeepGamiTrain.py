@@ -541,8 +541,10 @@ def run_split_train(snp_data, gex_data, labels, args):
             f.write(val_cs_str + ',' + str(perf_1m_dict['max_val_cs_acc']) + '\n')
 
     out_file = args.save + 'overall_perf.txt'
-    header_str = "Model\tTrain BACC\tTrain AUC\tVal BACC\tVal AUC\tVal Cs->Cg BACC"
-    header_str += "\tVal Cs->Cg AUC\tVal Cg->Cs BACC\tVal Cg->Cs AUC\n"
+    header_str = "Model\tRnd_Seed\tTr_BACC\tTr_BACC_SD\tTr_AUC\tTr_AUC_SD\tVal BACC\tVal_BACC_SD"
+    header_str += "\tVal_AUC\tVal_AUC_SD\tVal Cs->Cg BACC\tVal Cs->Cg BACC SD\tVal Cs->Cg AUC"
+    header_str += "\tVal Cs->Cg AUC SD\tVal Cg->Cs BACC\tVal Cg->Cs BACC SD\tVal Cg->Cs AUC\tVal Cg->Cs AUC SD\n"
+
 
     if not os.path.exists(out_file):
         with open(out_file, 'w') as write_fl:
@@ -617,8 +619,10 @@ def train_deepgami(args):
             adj1 = bio_dropout(adj1, 'bernoulli')
             adj2 = bio_dropout(adj2, 'bernoulli')
 
-    args.adj1 = torch.from_numpy(adj1).float().to(device)
-    args.adj2 = torch.from_numpy(adj2).float().to(device)
+     header_str = "Model\tRnd_Seed\tTr_BACC\tTr_BACC_SD\tTr_AUPRC\tTr_AUPRC_SD\tVal BACC\tVal_BACC_SD"
+    header_str += "\tVal_AUPRC\tVal_AUPRC_SD\tVal Cs->Cg BACC\tVal Cs->Cg BACC SD\tVal Cs->Cg AUPRC"
+    header_str += "\tVal Cs->Cg AUPRC SD\tVal Cg->Cs BACC\tVal Cg->Cs BACC SD\tVal Cg->Cs AUPRC\tVal Cg->Cs AUPRC SD\n"
+
 
     end_time = time.perf_counter()
     print("Data fetch & split completed in %.3f mins\n"%((end_time - st_time)/60.00))
