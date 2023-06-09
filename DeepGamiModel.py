@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-@author: pbchandr
+@author: Pramod Bharadwaj Chandrashekar
+@email: pchandrashe3@wisc.edu
 """
 
 import math
