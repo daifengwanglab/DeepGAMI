@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 @author: Pramod Bharadwaj Chandrashekar
+@email: pchandrashe3@wisc.edu
 """
 
 import argparse
