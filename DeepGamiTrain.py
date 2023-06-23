@@ -74,6 +74,7 @@ def get_classification_performance(y_true, y_score, task='binary'):
         auc = skm.roc_auc_score(y_true, y_score)
         y_pred = np.where(y_score<0.5, 0, 1)
     else:
+        print(y_score)
         auc = skm.roc_auc_score(y_true, y_score, average="weighted", multi_class="ovr")
         y_pred = np.argmax(y_score, 1)
 
@@ -152,6 +153,9 @@ def fit(epochs, model, loss_fn, opt, train_dl, val_dl, l1_reg, corr_reg, task, s
         estimate = 'None'
         tr_loss, tr_pred, tr_truth = train_step(model, loss_fn, train_dl, l1_reg,
                                                 corr_reg, estimate, task, opt)
+        print('tr_truth', tr_truth)
+        print('tr_truth', tr_pred)
+        
 
         # Evaluataion phase
         model.eval()
@@ -321,6 +325,9 @@ def run_cv_train(snp_data, gex_data, labels, args):
             gex_val = ut.normalize_data(gex_val.copy(), args.norm_type, norm_method[1])
 
         y_tr, y_val = labels[tridx] , labels[teidx]
+        
+        print('snps_tr', snps_tr[0:10, 0:10])
+        print('gex_tr', gex_tr[0:10, 0:10])
 
         # Make data iterable with batches
         snps_tr, gex_tr, y_tr = map(torch.tensor, (snps_tr, gex_tr, y_tr))
@@ -600,6 +607,7 @@ def train_deepgami(args):
         inp[1] = inp[1].T
 
     args.n_out = labels.shape[1]
+    print(labels.shape)
     print('Input 1 shape', inp[0].shape)
     print('Input 2 shape', inp[1].shape)
 
@@ -620,7 +628,7 @@ def train_deepgami(args):
             adj1 = bio_dropout(adj1, 'bernoulli')
             adj2 = bio_dropout(adj2, 'bernoulli')
 
-     header_str = "Model\tRnd_Seed\tTr_BACC\tTr_BACC_SD\tTr_AUPRC\tTr_AUPRC_SD\tVal BACC\tVal_BACC_SD"
+    header_str = "Model\tRnd_Seed\tTr_BACC\tTr_BACC_SD\tTr_AUPRC\tTr_AUPRC_SD\tVal BACC\tVal_BACC_SD"
     header_str += "\tVal_AUPRC\tVal_AUPRC_SD\tVal Cs->Cg BACC\tVal Cs->Cg BACC SD\tVal Cs->Cg AUPRC"
     header_str += "\tVal Cs->Cg AUPRC SD\tVal Cg->Cs BACC\tVal Cg->Cs BACC SD\tVal Cg->Cs AUPRC\tVal Cg->Cs AUPRC SD\n"
 
@@ -643,13 +651,13 @@ def main():
     parser.add_argument('--num_data_modal', type=int, default=2,
                         help='Path to the input data file')
     parser.add_argument('--input_files', type=str,
-                        default="data/processed/cmc_features/cmc_tr_geno.csv,data/processed/cmc_features/cmc_tr_gex.csv",
+                        default="data_csv_path1,data_csv_path2",
                         help='Comma separated input data paths')
     parser.add_argument('--intermediate_phenotype_files', type=str,
-                        default="data/processed/cmc_features/cmc_tr_eqtl_adj.npz,data/processed/cmc_features/cmc_tr_grn_adj.npz",
+                        default="None",
                         help='Path to transparent layer adjacency matrix')
     parser.add_argument('--disease_label_file', type=str,
-                        default="data/processed/cmc_features/cmc_tr_labels.csv",
+                        default="labels_csv_path",
                         help='Path to Output labels file - Disease phenotypes')
 
     # Hyper parameters
@@ -658,7 +666,7 @@ def main():
     parser.add_argument('--corr_reg', type=float, default=1, help='l2_corr_lambda')
 
     # First transparent layer
-    parser.add_argument('--model_type', type=str, default='dropconnect',
+    parser.add_argument('--model_type', type=str, default='fully_connect',
                         help='fully_connect vs drop_connect vs bernoulli_dropconenct vs random_dropconnect')
     parser.add_argument('--latent_dim', type=int, default=1000,
                         help='Number of dimensions for the latent space to be reduced.')
