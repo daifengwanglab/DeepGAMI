@@ -4,7 +4,10 @@ Genotype-phenotype association is found in many biological systems such as brain
 
 ![figure1_new](https://user-images.githubusercontent.com/57010174/169340516-1d3c46bb-9a4a-4d6a-a710-eeb168e8bb22.png)
 
-
+DeepGAMI provides has three major steps:
+* Training: Training phase involves training the data using 5-fold CV by tuning the hyperparameters.
+* Testing: This step provides functions to predict new samples based on the trained model. We provide options to test when 1) Both modalities are present. 2) Single modality is present.
+* Feature prioritization: This step uses the trained model to priotize input features associated with the phenotype.
 
 ## Dependencies
 The script is based on python 3.4 above and requires the following packages:
