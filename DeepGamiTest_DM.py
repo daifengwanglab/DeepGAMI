@@ -83,9 +83,19 @@ def run_test(args):
     snp_data = pd.read_csv(inp_files[0])
     snp_data = snp_data.set_index(snp_data.columns[0])
 
-    # modality 2 ==> This is to be estimated. You input all ones 
+    if model.fcn1.in_features != snp_data.shape[1]:
+        snp_data = snp_data.T
+        if model.fcn1.in_features != snp_data.shape[1]:
+            sys.exit("Feature mismatch.")
+
+    # modality 2
     gex_data = pd.read_csv(inp_files[1])
     gex_data = gex_data.set_index(gex_data.columns[0])
+
+    if model.fcn2.in_features != gex_data.shape[1]:
+        gex_data = gex_data.T
+        if model.fcn2.in_features != gex_data.shape[1]:
+            sys.exit("Feature mismatch.")
 
     scaler = preprocessing.StandardScaler()
     snps_te = scaler.fit_transform(snp_data)
@@ -94,28 +104,26 @@ def run_test(args):
     snps_te, gex_te = map(torch.tensor, (snps_te, gex_te))
     te_ds = TensorDataset(snps_te, gex_te)
     te_dl = DataLoader(dataset=te_ds, batch_size=100, shuffle=False)
-
     te_dl = WrappedDataLoader(te_dl, preprocess)
 
-    # cg -> Estimates Cg from Cs
-    pred = predict(model, te_dl, 'cg', 'binary')
+    pred = predict(model, te_dl, 'None', args.task)
 
-    # Write a file with the patient IDs and the probabilities each has Alzheimer's
+    # Create dataframe with sample ids and the probabilities of each class
     pred_cols = ['Class'+str(i) + ' Score' for i in range(1, (pred.shape[1]+1))]
-    pred_df = pd.DataFrame(pred)
-    pred_df = pred_cols
+    pred_df = pd.DataFrame.from_records(pred)
+    pred_df.columns = pred_cols
+    pred_df.insert(0, 'id', list(snp_data.index))
+    pred_df.to_csv("test_class_scores.csv")
 
-    pred_df.index = snp_data.index
-    patient_df.to_csv("test_class_scores.csv")
-
-    print("Printing AD scores for top 10 samples. Scores for all samples is saved in test_class_scores.csv file\n")
-    print(patient_df.head(10))
+    print("")
+    print("Printing class label scores for 10 samples. Scores for all samples is saved in test_class_scores.csv file\n")
+    print(pred_df.head(10))
 
     if args.labels is not None:
         # Read phenotype file
         lbls = pd.read_csv(args.label_file)
         labels = lbls.label.values
-        acc, bacc, auc = get_classification_performance(labels, pred)
+        acc, bacc, auc = get_classification_performance(labels, pred, args.task)
 
         print("The prediction performance for the given test samples is as follows:")
         print("BACC =", bacc)
@@ -132,6 +140,8 @@ def main():
                         help='Path to the label file. Must contain a column named label')
     parser.add_argument('--model_file', type=str, default=None,
                         help='Path to the trained model location.')
+    parser.add_argument('--task', type=str, default='binary',
+                        help='Choose between binary and multiclass')
 
     args = parser.parse_args()
     run_test(args)
