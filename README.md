@@ -131,6 +131,11 @@ The trained model can then be used to predict the labels on new samples. **DeepG
 '''python -u DeepGamiTest_SM.py --input_file='./demo/test/independent_test_118_gexMat.csv' --model_file='./demo/run_92_best_model.pth' --task='multiclass' '''
 
 This code generates the following output:
+<p align="center" width="100%">
+    <img  src="https://github.com/daifengwanglab/DeepGAMI/blob/main/sample_output.png" >
+    &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp;
+    <img  src="https://github.com/daifengwanglab/DeepGAMI/blob/main/sample_output.png" >
+</p>
 
 
 
