@@ -133,8 +133,6 @@ The trained model can then be used to predict the labels on new samples. **DeepG
 This code generates the following output:
 <p align="center" width="100%">
     <img  src="https://github.com/daifengwanglab/DeepGAMI/blob/main/sample_output.png" >
-    &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp;
-    <img  src="https://github.com/daifengwanglab/DeepGAMI/blob/main/sample_output.png" >
 </p>
 
 
