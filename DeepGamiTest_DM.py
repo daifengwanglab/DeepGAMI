@@ -76,11 +76,16 @@ def run_test(args):
     """ Function to test single modality outcomes """
     model = torch.load(args.model_file, map_location=torch.device(device))
     
-    # modality 1
-    snp_data = pd.read_csv(args.input_file).set_index('SubID')
+    # Input data
+    inp_files = list(args.input_files.split(','))
 
-    # modality 2
-    gex_data = torch.ones(snp_data.shape[0], model.fcn2.in_features)
+    # modality 1
+    snp_data = pd.read_csv(inp_files[0])
+    snp_data = snp_data.set_index(snp_data.columns[0])
+
+    # modality 2 ==> This is to be estimated. You input all ones 
+    gex_data = pd.read_csv(inp_files[1])
+    gex_data = gex_data.set_index(gex_data.columns[0])
 
     scaler = preprocessing.StandardScaler()
     snps_te = scaler.fit_transform(snp_data)
@@ -96,16 +101,14 @@ def run_test(args):
     pred = predict(model, te_dl, 'cg', 'binary')
 
     # Write a file with the patient IDs and the probabilities each has Alzheimer's
-    patient_preds = []
-    for p in pred:
-        patient_preds.append("{:.5f}".format(p[0]))
+    pred_cols = ['Class'+str(i) + ' Score' for i in range(1, (pred.shape[1]+1))]
+    pred_df = pd.DataFrame(pred)
+    pred_df = pred_cols
 
-    patient_dict = {'sample_id': snp_data.index, 'AD Score': patient_preds} 
-    patient_df = pd.DataFrame(patient_dict)
+    pred_df.index = snp_data.index
+    patient_df.to_csv("test_class_scores.csv")
 
-    patient_df.to_csv("sample_AD_scores.csv")
-
-    print("Printing AD scores for top 10 samples. Scores for all samples is saved in sample_AD_scores.csv file\n")
+    print("Printing AD scores for top 10 samples. Scores for all samples is saved in test_class_scores.csv file\n")
     print(patient_df.head(10))
 
     if args.labels is not None:
