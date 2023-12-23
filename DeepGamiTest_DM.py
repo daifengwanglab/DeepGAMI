@@ -29,9 +29,9 @@ import seaborn as sns
     
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def preprocess(inp1, inp2, oup):
+def preprocess(inp1, inp2):
     """ Function to direct the input and ouput to CPU vs GPU"""
-    return inp1.float().to(device), inp2.float().to(device), oup.int().to(device)
+    return inp1.float().to(device), inp2.float().to(device)
 
 class WrappedDataLoader:
     def __init__(self, dl, func):
@@ -63,18 +63,13 @@ def get_classification_performance(y_true, y_score, task='binary'):
 def predict(model, data_dl, estimate, task):
     """ Function to predict the samples """
     predictions, truth = [], []
-    for snps, gex, yb in data_dl:
+    for snps, gex in data_dl:
         yhat = model(snps, gex, estimate)
-
         if task == 'binary':
             predictions.extend(yhat.detach().cpu().numpy())
-            truth.extend(yb.detach().cpu().numpy())
         else:
             predictions.extend(torch.softmax(yhat, dim=1).detach().cpu().numpy())
-            truth.extend(yb.detach().cpu().numpy())
-    
     predictions = np.asarray(predictions)
-    truth = np.asarray(truth)
     return predictions, truth
 
 def run_test(args):
@@ -84,31 +79,44 @@ def run_test(args):
     # modality 1
     snp_data = pd.read_csv(args.input_file).set_index('SubID')
 
-    # modality 2 ==> This is to be estimated. You input all ones 
+    # modality 2
     gex_data = torch.ones(snp_data.shape[0], model.fcn2.in_features)
-
-    # Read phenotype file
-    lbls = pd.read_csv(args.label_file)
-    labels = lbls.label.values
 
     scaler = preprocessing.StandardScaler()
     snps_te = scaler.fit_transform(snp_data)
     gex_te = scaler.fit_transform(gex_data)
 
-    snps_te, gex_te, y_te = map(torch.tensor, (snps_te, gex_te, labels))
-    te_ds = TensorDataset(snps_te, gex_te, y_te)
+    snps_te, gex_te = map(torch.tensor, (snps_te, gex_te))
+    te_ds = TensorDataset(snps_te, gex_te)
     te_dl = DataLoader(dataset=te_ds, batch_size=100, shuffle=False)
 
     te_dl = WrappedDataLoader(te_dl, preprocess)
 
     # cg -> Estimates Cg from Cs
-    pred, truth = predict(model, te_dl, 'cg', 'binary')
+    pred = predict(model, te_dl, 'cg', 'binary')
 
-    acc, bacc, auc = get_classification_performance(truth, pred)
+    # Write a file with the patient IDs and the probabilities each has Alzheimer's
+    patient_preds = []
+    for p in pred:
+        patient_preds.append("{:.5f}".format(p[0]))
 
-    print("BACC =", bacc)
-    print("AUC =", auc)
+    patient_dict = {'sample_id': snp_data.index, 'AD Score': patient_preds} 
+    patient_df = pd.DataFrame(patient_dict)
 
+    patient_df.to_csv("sample_AD_scores.csv")
+
+    print("Printing AD scores for top 10 samples. Scores for all samples is saved in sample_AD_scores.csv file\n")
+    print(patient_df.head(10))
+
+    if args.labels is not None:
+        # Read phenotype file
+        lbls = pd.read_csv(args.label_file)
+        labels = lbls.label.values
+        acc, bacc, auc = get_classification_performance(labels, pred)
+
+        print("The prediction performance for the given test samples is as follows:")
+        print("BACC =", bacc)
+        print("AUC =", auc)
 
 def main():
     """ Main method """
