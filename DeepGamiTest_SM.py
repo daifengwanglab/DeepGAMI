@@ -77,7 +77,7 @@ def predict(model, data_dl, estimate, task):
 
 def run_test(args):
     """ Function to test single modality outcomes """
-    model = torch.load(args.trained_model, map_location=torch.device(device))
+    model = torch.load(args.model_file, map_location=torch.device(device))
     
     # modality 1
     snp_data = pd.read_csv(args.input_file)
@@ -125,13 +125,12 @@ def main():
     parser = argparse.ArgumentParser()
 
     # Input
-    parser.add_argument('--input_modality', type=str, default=None,
-                        help='Path to the input data modality you wish to test.')
-    parser.add_argument('--labels', type=str, default=None,
-                        help='The 1s and 0s dictating positive and negative cases, respectively.')
-    parser.add_argument('--trained_model', type=str, default=None,
-                        help='The trained model.')
-
+    parser.add_argument('--input_file', type=str, default=None,
+                        help='Path to the single input modailty data file with available')
+    parser.add_argument('--label_file', type=str, default=None,
+                        help='Path to the label file. Must contain a column named label')
+    parser.add_argument('--model_file', type=str, default=None,
+                        help='Path to the trained model location.')
     args = parser.parse_args()
     run_test(args)
 
