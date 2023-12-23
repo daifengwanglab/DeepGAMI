@@ -79,7 +79,7 @@ def run_test(args):
         if model.fcn1.in_features != snp_data.shape[1]:
             sys.exit("Feature mismatch.")
 
-    # modality 2 ==> change to ones
+    # modality 2 - Matrix of all ones
     gex_data = torch.ones(snp_data.shape[0], model.fcn2.in_features)
 
     scaler = preprocessing.StandardScaler()
@@ -95,7 +95,7 @@ def run_test(args):
     # cg -> Estimates Cg from Cs
     pred = predict(model, te_dl, 'cg', args.task)
 
-    # Write a file with the patient IDs and the probabilities each has Alzheimer's
+    # Create dataframe with sample ids and the probabilities of each class
     pred_cols = ['Class'+str(i) + ' Score' for i in range(1, (pred.shape[1]+1))]
     pred_df = pd.DataFrame.from_records(pred)
     pred_df.columns = pred_cols
