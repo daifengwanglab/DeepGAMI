@@ -99,19 +99,17 @@ def run_test(args):
     # cg -> Estimates Cg from Cs
     pred = predict(model, te_dl, 'cg', 'binary')
 
-    # Write a file with the patient IDs and the probabilities each has Alzheimer's
-    patient_preds = []
-    for p in pred:
-        patient_preds.append("{:.5f}".format(p[0]))
+        # Write a file with the patient IDs and the probabilities each has Alzheimer's
+    pred_cols = ['Class'+str(i) + ' Score' for i in range(1, (pred.shape[1]+1))]
+    pred_df = pd.DataFrame(pred)
+    pred_df = pred_cols
 
-    patient_dict = {'sample_id': snp_data.index, 'AD Score': patient_preds} 
-    patient_df = pd.DataFrame(patient_dict)
+    pred_df.index = snp_data.index
+    patient_df.to_csv("test_class_scores.csv")
 
-    patient_df.to_csv("sample_AD_scores.csv")
-
+    print("Printing AD scores for top 10 samples. Scores for all samples is saved in test_class_scores.csv file\n")
     print(patient_df.head(10))
-    print("Prediction scores for all individuals are in sample_AD_scores.csv file", "\n")
-
+    
     if args.labels is not None:
         # Read phenotype file
         lbls = pd.read_csv(args.label_file)
