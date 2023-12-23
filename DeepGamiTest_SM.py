@@ -1,32 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Mar 27 2022
 @author: pramod
 """
 
 import sys
 import argparse
-import os
-import time
-import random
 import torch
 from torch import nn
 import numpy as np
 import pandas as pd
-from collections import Counter
 import sklearn.metrics as skm
-from sklearn.model_selection import  StratifiedKFold, train_test_split, KFold
 from sklearn import preprocessing
 from torch.utils.data import TensorDataset, DataLoader
-import DeepGamiUtils as ut
 from DeepGamiModel import DeepGami
-#from DeepDiceMVModel import DeepDiceMV
-from sklearn.metrics import roc_curve, auc, precision_recall_curve, average_precision_score 
-from sklearn.preprocessing import label_binarize
-import matplotlib.pyplot as plt
-import seaborn as sns
-    
+import warnings
+warnings.simplefilter("ignore")
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def preprocess(inp1, inp2):
@@ -78,10 +68,16 @@ def predict(model, data_dl, estimate, task):
 def run_test(args):
     """ Function to test single modality outcomes """
     model = torch.load(args.model_file, map_location=torch.device(device))
-    
+
     # modality 1
     snp_data = pd.read_csv(args.input_file)
     snp_data = snp_data.set_index(snp_data.columns[0])
+
+    if model.fcn1.in_features != snp_data.shape[1]:
+        snp_data = snp_data.T
+        
+        if model.fcn1.in_features != snp_data.shape[1]:
+            sys.exit("Feature mismatch.")
 
     # modality 2 ==> change to ones
     gex_data = torch.ones(snp_data.shape[0], model.fcn2.in_features)
@@ -97,28 +93,29 @@ def run_test(args):
     te_dl = WrappedDataLoader(te_dl, preprocess)
 
     # cg -> Estimates Cg from Cs
-    pred = predict(model, te_dl, 'cg', 'binary')
+    pred = predict(model, te_dl, 'cg', args.task)
 
-        # Write a file with the patient IDs and the probabilities each has Alzheimer's
+    # Write a file with the patient IDs and the probabilities each has Alzheimer's
     pred_cols = ['Class'+str(i) + ' Score' for i in range(1, (pred.shape[1]+1))]
-    pred_df = pd.DataFrame(pred)
-    pred_df = pred_cols
-
-    pred_df.index = snp_data.index
-    patient_df.to_csv("test_class_scores.csv")
-
-    print("Printing AD scores for top 10 samples. Scores for all samples is saved in test_class_scores.csv file\n")
-    print(patient_df.head(10))
+    pred_df = pd.DataFrame.from_records(pred)
+    pred_df.columns = pred_cols
+    pred_df.insert(0, 'id', list(snp_data.index))
+    pred_df.to_csv("test_class_scores.csv")
     
-    if args.labels is not None:
+
+    print("")
+    print("Printing class label scores for 10 samples. Scores for all samples is saved in test_class_scores.csv file\n")
+    print(pred_df.head(10))
+    
+    if args.label_file is not None:
         # Read phenotype file
         lbls = pd.read_csv(args.label_file)
         labels = lbls.label.values
-        acc, bacc, auc = get_classification_performance(labels, pred)
+        acc, bacc, auc = get_classification_performance(labels, pred, args.task)
 
         print("The prediction performance for the given test samples is as follows:")
-        print("BACC =", bacc)
-        print("AUC =", auc)
+        print("BACC = ", bacc)
+        print("AUC = ", auc)
 
 def main():
     """ Main method """
@@ -126,11 +123,14 @@ def main():
 
     # Input
     parser.add_argument('--input_file', type=str, default=None,
-                        help='Path to the single input modailty data file with available')
+                        help='Path to the input data modality you wish to test.')
     parser.add_argument('--label_file', type=str, default=None,
-                        help='Path to the label file. Must contain a column named label')
-    parser.add_argument('--model_file', type=str, default=None,
-                        help='Path to the trained model location.')
+                        help='The 1s and 0s dictating positive and negative cases, respectively.')
+    parser.add_argument('--model_file', type=str, default='run_92_best_model.pth',
+                        help='The trained model.')
+    parser.add_argument('--task', type=str, default='binary',
+                        help='Choose between binary and multiclass')
+
     args = parser.parse_args()
     run_test(args)
 
