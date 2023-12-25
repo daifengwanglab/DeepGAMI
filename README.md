@@ -158,7 +158,7 @@ This code generates the following output:
 
 
 #### Feature Prioritization
-DeepGamiIG.py can be used to priotiritze electrophysiological and genes. Run the command:
+DeepGamiIG.py can be used to priotiritze electrophysiological and gene features. Run the command:
 ```
 python -u DeepGamiIG.py --input_files='demo/expMat_filtered.csv,demo/efeature_filtered.csv' --label_file='demo/label_visual.csv' --model_file='run_92_best_model.pth' --prioritization_task='feature'
 ```
