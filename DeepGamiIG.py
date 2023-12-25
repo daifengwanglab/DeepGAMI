@@ -188,9 +188,6 @@ def main():
     parser.add_argument('--input_files', type=str,
                         default="expMat_filtered.csv,efeature_filtered.csv",
                         help='Comma separated input data paths')
-    parser.add_argument('--intermediate_phenotype_files', type=str,
-                        default="None",
-                        help='Path to transparent layer adjacency matrix')
     parser.add_argument('--label_file', type=str, default="label_visual.csv",
                         help='Path to label file - Disease phenotypes')
 
