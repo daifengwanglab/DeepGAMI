@@ -7,6 +7,7 @@
 import torch
 import pandas as pd
 import numpy as np
+import argparse
 from captum.attr import IntegratedGradients, LayerConductance, NeuronConductance
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn import preprocessing
@@ -34,6 +35,7 @@ def get_mc_feat_importance(model, inp1, inp2, feat1_names, feat2_names, labels):
     """ Function to get feature importance for multi_class"""
     ig = IntegratedGradients(model)
     x1_imp, x2_imp = [], []
+    print(max(labels))
     for i in range(0, (max(labels)+1)):
         (x1_attr, x2_attr), _ = ig.attribute((inp1, inp2), method='gausslegendre',
                                              return_convergence_delta=True,
@@ -44,7 +46,8 @@ def get_mc_feat_importance(model, inp1, inp2, feat1_names, feat2_names, labels):
         x1_imp.append(np.mean(abs(x1_attr), axis=0))
         x2_imp.append(np.mean(abs(x2_attr), axis=0))
 
-    for i in range(len(x1_attr)):
+    print(len(x1_imp))
+    for i in range(len(x1_imp)):
         if i == 0:
             df1 = pd.DataFrame({'id':feat1_names, 'L1': x1_imp[i]})
             df2 = pd.DataFrame({'id':feat2_names, 'L1': x2_imp[i]})
@@ -52,7 +55,7 @@ def get_mc_feat_importance(model, inp1, inp2, feat1_names, feat2_names, labels):
             df1['L'+str(i+1)] = x1_imp[i]
             df2['L'+str(i+1)] = x2_imp[i]
 
-    return x1_imp, x2_imp
+    return df1, df2
 
 def get_feat_importance(model, inp1, inp2, feat1_names, feat2_names):
     """ Function to get feature importance """
@@ -110,69 +113,98 @@ def get_link_importance(model, inp1, inp2, feat1_names, feat2_names, tg_names):
 
 
 """ Prioritization Analysis """
-# Specify the required input locations
-INPUT_FILES = "demo/expMat_filtered.csv,demo/efeature_filtered.csv" # Point to the input files
-MID_PHEN_FILE = "None,None" # Point to the intermediate files
-LABEL_FILE = "demo/label_visual.csv" # Point to the label files
-MODEL_FILE = 'try/run_4_best_model.pth' # Point to the trained model
+def run_prioritization(args):
+    """ Function to run prioritization """
+    
+    print(args)
+    
+    # Read the input data files
+    inp, _, labels = ut.get_mm_data(args.input_files, args.intermediate_phenotype_files,
+                                    args.label_file, file_format='csv')
+    labels = np.argmax(labels, 1)
+    print(set(labels))
 
-# Read the input data files
-inp, _, labels = ut.get_mm_data(INPUT_FILES, MID_PHEN_FILE, LABEL_FILE, file_format='csv')
+    # Standardization
+    x1_np = np.log(inp[0]+1).to_numpy()
+    x2_np = preprocessing.scale(inp[1].to_numpy(),axis=0)
 
-# Standardization
-x1_np = np.log(inp[0]+1).to_numpy()
-x2_np = preprocessing.scale(inp[1].to_numpy(),axis=0)
+    # Get the feature names
+    x1_names, x2_names = list(inp[0].columns.values), list(inp[1].columns.values)
 
-# Get the feature names
-x1_names, x2_names = list(inp[0].columns.values), list(inp[1].columns.values)
+    if x1_np.shape[1] == len(labels):
+        x1_np = x1_np.T
+        x1_names = list(inp[0].index.values)
+    
+    if x2_np.shape[1] == len(labels):
+        x2_np = x2_np.T
+        x2_names = list(inp[1].index.values)
 
-if x1_np.shape[1] == len(labels):
-    x1_np = x1_np.T
-    x1_names = list(inp[0].index.values)
+    # Make data iterable
+    te_data1, te_data2, te_label = map(torch.tensor, (x1_np, x2_np, labels))
+    test_ds = TensorDataset(te_data1, te_data2, te_label)
+    test_dl = DataLoader(dataset=test_ds, batch_size=x1_np.shape[0], shuffle=True)
+    test_dl = WrappedDataLoader(test_dl, preprocess)
 
-if x2_np.shape[1] == len(labels):
-    x2_np = x2_np.T
-    x2_names = list(inp[1].index.values)
+    # Load the model
+    print('Loading model...')
+    deepgami_mdl = torch.load(args.model_file, map_location='cpu')
 
+    for x1b, x2b, yb in test_dl:
+        if args.prioritization_task == 'feature':
+            # Get prioritized features
+            if len(set(labels)) > 2:
+                feat1_imp, feat2_imp = get_mc_feat_importance(deepgami_mdl, x1b, x2b,
+                                                              x1_names,x2_names, yb)
+            else:
+                feat1_imp, feat2_imp = get_feat_importance(deepgami_mdl, x1b, x2b,
+                                                           x1_names, x2_names)
+            feat1_imp.to_csv('mod1_prioritized_feature.csv', index=False)
+            feat2_imp.to_csv('mod2_prioritized_feature.csv', index=False)
 
-# Make data iterable
-te_data1, te_data2, te_label = map(torch.tensor, (x1_np, x2_np, labels))
-test_ds = TensorDataset(te_data1, te_data2, te_label)
-test_dl = DataLoader(dataset=test_ds, batch_size=3654, shuffle=True)
-test_dl = WrappedDataLoader(test_dl, preprocess)
+        # Get prioritized intermediate features
+        elif args.prioritization_task == 'layer':
+            if args.intermediate_phenotype_files.split(',')[0] != 'None':
+                # Point to the target names file
+                tg_file = 'data/processed/cmc_features/cmc_te_tgs.list' 
+                target_names = pd.read_csv(tg_file, header=None)
+                target_names = list(target_names.iloc[:, 0])
+        
+                target_imp = get_layer_importance(deepgami_mdl, x1b, x2b, target_names)
+                target_imp.to_csv('intermediate_nodes_prioritized.csv', index=False)
+        
+        elif args.prioritization_task == 'link':
+            feat1_neur_imp, feat2_neur_imp = get_link_importance(deepgami_mdl, x1b, x2b,
+                                                                 x1_names, x2_names, target_names)
+            feat1_neur_imp.to_csv('mod1_prioritized_link.csv', index=False)
+            feat2_neur_imp.to_csv('mod2_prioritized_link.csv', index=False)
 
-# Load the model
-print('Loading model...')
-deepgami_mdl = torch.load(MODEL_FILE, map_location='cpu')
+        break
 
-# All test samples are from one single batch
-for x1b, x2b, yb in test_dl:
-    # Get prioritized features - IntegratedGradient
-    if len(set(labels[:, 0])) > 2:
-        feat1_imp, feat2_imp = get_mc_feat_importance(deepgami_mdl, x1b, x2b,
-                                                      x1_names,x2_names, yb)
-    else:
-        feat1_imp, feat2_imp = get_feat_importance(deepgami_mdl, x1b, x2b, x1_names, x2_names)
+def main():
+    """ Main method """
+    parser = argparse.ArgumentParser()
+    
+    # Input
+    parser.add_argument('--input_files', type=str,
+                        default="expMat_filtered.csv,efeature_filtered.csv",
+                        help='Comma separated input data paths')
+    parser.add_argument('--intermediate_phenotype_files', type=str,
+                        default="None",
+                        help='Path to transparent layer adjacency matrix')
+    parser.add_argument('--label_file', type=str, default="label_visual.csv",
+                        help='Path to label file - Disease phenotypes')
 
-    feat1_imp.to_csv('genes_prioritized.csv', index=False)
-    feat2_imp.to_csv('ephys_prioritized.csv', index=False)
+    # Model file
+    parser.add_argument('--model_file', type=str, default='run_92_best_model.pth',
+                        help='Path to the model file')
 
-    # Get prioritized Intermediate features - IntegratedGradient
-    if MID_PHEN_FILE.split(',')[0] != 'None':
-        tg_file = 'data/processed/cmc_features/cmc_te_tgs.list' # Point to the target names file
-        target_names = pd.read_csv(tg_file, header=None)
-        target_names = list(target_names.iloc[:, 0])
+    #Importance score calculation
+    parser.add_argument('--prioritization_task', type=str, default='feature',
+                        help='Choose between feature and link prioritization')
 
-        target_imp = get_layer_importance(deepgami_mdl, x1b, x2b, target_names)
-        target_imp.to_csv('intermediate_nodes_prioritized.csv', index=False)
-
-    # Get prioritized links
-    LINK_IMP_FLAG = False
-    if LINK_IMP_FLAG:
-        feat1_neur_imp, feat2_neur_imp = get_link_importance(deepgami_mdl, x1b, x2b, x1_names,
-                                                             x2_names, target_names)
-
-        feat1_neur_imp.to_csv('mod1_link_prioritized.csv', index=False)
-        feat2_neur_imp.to_csv('mod2_link_prioritized.csv', index=False)
-
-    break
+    args = parser.parse_args()
+    print(args)
+    run_prioritization(args)
+    
+if __name__ == '__main__':
+    main()
