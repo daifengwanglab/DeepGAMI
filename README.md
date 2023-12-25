@@ -163,7 +163,7 @@ DeepGamiIG.py can be used to priotiritze electrophysiological and gene features.
 python -u DeepGamiIG.py --input_files='demo/expMat_filtered.csv,demo/efeature_filtered.csv' --label_file='demo/label_visual.csv' --model_file='run_92_best_model.pth' --prioritization_task='feature'
 ```
 
-This generates two files: "ephys_prioritized.csv" containing prioritized electrophysiological features and its importance score, and "genes_prioritized.csv" for gene prioritization with its importance score.
+This generates two files: "mod1_prioritized_link.csv" containing prioritized gene features and its importance score, and "mod1_prioritized_link.csv" for electrophysiological prioritization with its importance score.
 
 ## License
 MIT License
